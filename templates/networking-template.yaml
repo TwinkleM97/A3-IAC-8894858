@@ -1,0 +1,150 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Assignment 3 - Networking Infrastructure Template by Twinkle Mishra (8894858)'
+
+Parameters:
+  VpcCidr:
+    Type: String
+    Default: '10.0.0.0/16'
+    Description: CIDR block for VPC
+  
+  PublicSubnetCidr:
+    Type: String
+    Default: '10.0.1.0/24'
+    Description: CIDR block for public subnet
+  
+  PrivateSubnetCidr:
+    Type: String
+    Default: '10.0.2.0/24'
+    Description: CIDR block for private subnet
+
+Resources:
+  # VPC
+  Assignment3VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: Assignment3-VPC-TwinkleMishra
+        - Key: Student
+          Value: Twinkle Mishra
+        - Key: StudentID
+          Value: '8894858'
+
+  # Internet Gateway
+  Assignment3IGW:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: Assignment3-IGW-TwinkleMishra
+        - Key: Student
+          Value: Twinkle Mishra
+
+  # Attach Internet Gateway to VPC
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref Assignment3VPC
+      InternetGatewayId: !Ref Assignment3IGW
+
+  # Public Subnet
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Assignment3VPC
+      CidrBlock: !Ref PublicSubnetCidr
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: Assignment3-PublicSubnet-TwinkleMishra
+        - Key: Student
+          Value: Twinkle Mishra
+
+  # Private Subnet (for RDS)
+  PrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Assignment3VPC
+      CidrBlock: !Ref PrivateSubnetCidr
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: Assignment3-PrivateSubnet-TwinkleMishra
+        - Key: Student
+          Value: Twinkle Mishra
+
+  # Public Route Table
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Assignment3VPC
+      Tags:
+        - Key: Name
+          Value: Assignment3-PublicRT-TwinkleMishra
+        - Key: Student
+          Value: Twinkle Mishra
+
+  # Public Route
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: '0.0.0.0/0'
+      GatewayId: !Ref Assignment3IGW
+
+  # Public Subnet Route Table Association
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  # DB Subnet Group for RDS
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for Assignment3 RDS database
+      SubnetIds:
+        - !Ref PublicSubnet
+        - !Ref PrivateSubnet
+      Tags:
+        - Key: Name
+          Value: Assignment3-DBSubnetGroup-TwinkleMishra
+        - Key: Student
+          Value: Twinkle Mishra
+
+Outputs:
+  VPCId:
+    Description: VPC ID
+    Value: !Ref Assignment3VPC
+    Export:
+      Name: Assignment3-VPC-ID
+  
+  PublicSubnetId:
+    Description: Public Subnet ID
+    Value: !Ref PublicSubnet
+    Export:
+      Name: Assignment3-PublicSubnet-ID
+  
+  PrivateSubnetId:
+    Description: Private Subnet ID
+    Value: !Ref PrivateSubnet
+    Export:
+      Name: Assignment3-PrivateSubnet-ID
+  
+  InternetGatewayId:
+    Description: Internet Gateway ID
+    Value: !Ref Assignment3IGW
+    Export:
+      Name: Assignment3-IGW-ID
+
+  DBSubnetGroupName:
+    Description: DB Subnet Group Name
+    Value: !Ref DBSubnetGroup
+    Export:
+      Name: Assignment3-DBSubnetGroup-Name

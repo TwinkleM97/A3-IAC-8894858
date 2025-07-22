@@ -1,0 +1,130 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Assignment 3 - RDS Instance Template by Twinkle Mishra (8894858)'
+
+Parameters:
+  DBInstanceClass:
+    Type: String
+    Default: db.t3.micro
+    Description: RDS instance class
+    AllowedValues:
+      - db.t3.micro
+      - db.t3.small
+      - db.t3.medium
+  
+  DBUsername:
+    Type: String
+    Default: admin
+    Description: Database administrator username
+    MinLength: 1
+    MaxLength: 16
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+  
+  DBPassword:
+    Type: String
+    Default: Assignment3Pass123
+    Description: Database administrator password
+    MinLength: 8
+    MaxLength: 41
+    NoEcho: true
+
+Resources:
+  # Security Group for RDS Instance
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Assignment3 RDS instance - allows MySQL
+      VpcId: !ImportValue Assignment3-VPC-ID
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          CidrIp: '0.0.0.0/0'
+          Description: Allow MySQL access from anywhere
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !ImportValue Assignment3-EC2-SecurityGroup-ID
+          Description: Allow MySQL access from EC2 instance
+      Tags:
+        - Key: Name
+          Value: Assignment3-RDS-SG-TwinkleMishra
+        - Key: Student
+          Value: Twinkle Mishra
+        - Key: StudentID
+          Value: '8894858'
+
+  # RDS Database Instance
+  Assignment3RDSInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: assignment3-db-twinklemishra
+      DBName: assignment3
+      DBInstanceClass: !Ref DBInstanceClass
+      Engine: mysql
+      EngineVersion: '8.0.35'
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      AllocatedStorage: 20
+      StorageType: gp2
+      VPCSecurityGroups:
+        - !Ref RDSSecurityGroup
+      DBSubnetGroupName: !ImportValue Assignment3-DBSubnetGroup-Name
+      PubliclyAccessible: true
+      BackupRetentionPeriod: 0
+      DeletionProtection: false
+      MultiAZ: false
+      StorageEncrypted: false
+      Tags:
+        - Key: Name
+          Value: Assignment3-RDS-TwinkleMishra
+        - Key: Student
+          Value: Twinkle Mishra
+        - Key: StudentID
+          Value: '8894858'
+        - Key: Assignment
+          Value: Assignment3
+
+  # Create database parameter group (optional but good practice)
+  Assignment3DBParameterGroup:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      Description: Parameter group for Assignment3 MySQL database
+      Family: mysql8.0
+      Parameters:
+        innodb_buffer_pool_size: '{DBInstanceClassMemory*3/4}'
+      Tags:
+        - Key: Name
+          Value: Assignment3-DBParamGroup-TwinkleMishra
+        - Key: Student
+          Value: Twinkle Mishra
+
+Outputs:
+  RDSInstanceId:
+    Description: RDS Instance ID
+    Value: !Ref Assignment3RDSInstance
+    Export:
+      Name: Assignment3-RDS-InstanceId
+  
+  RDSEndpoint:
+    Description: RDS Instance Endpoint
+    Value: !GetAtt Assignment3RDSInstance.Endpoint.Address
+    Export:
+      Name: Assignment3-RDS-Endpoint
+  
+  RDSPort:
+    Description: RDS Instance Port
+    Value: !GetAtt Assignment3RDSInstance.Endpoint.Port
+    Export:
+      Name: Assignment3-RDS-Port
+  
+  DatabaseName:
+    Description: Database Name
+    Value: assignment3
+    Export:
+      Name: Assignment3-DB-Name
+  
+  RDSSecurityGroupId:
+    Description: Security Group ID for RDS instance
+    Value: !Ref RDSSecurityGroup
+    Export:
+      Name: Assignment3-RDS-SecurityGroup-ID
